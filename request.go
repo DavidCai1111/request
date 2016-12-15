@@ -1,12 +1,13 @@
 package request
 
 import (
+	"bytes"
 	"errors"
 	"io"
-	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"net/url"
-	"strings"
+	"os"
 	"time"
 
 	simplejson "github.com/bitly/go-simplejson"
@@ -35,16 +36,27 @@ func (mr maxRedirects) check(req *http.Request, via []*http.Request) error {
 	return nil
 }
 
+type basicAuthInfo struct {
+	name     string
+	password string
+}
+
 // Client is a HTTP client.
 type Client struct {
-	cli            *http.Client
-	req            *http.Request
-	res            *Response
-	err            error
-	vals           url.Values
-	timeout        time.Duration
-	redirects      maxRedirects
-	formValsReader io.Reader
+	cli       *http.Client
+	req       *http.Request
+	res       *Response
+	mw        *multipart.Writer
+	mwBuf     *bytes.Buffer
+	url       *url.URL
+	cookies   []*http.Cookie
+	basicAuth *basicAuthInfo
+	header    http.Header
+	method    string
+	vals      url.Values
+	timeout   time.Duration
+	redirects maxRedirects
+	err       error
 }
 
 // New returns an new HTTP request Client.
@@ -53,12 +65,16 @@ func New(c *http.Client) *Client {
 		c = &http.Client{}
 	}
 
-	return &Client{cli: c, req: &http.Request{}}
+	return &Client{
+		cli:     c,
+		header:  http.Header{},
+		cookies: []*http.Cookie{},
+	}
 }
 
 // To defines the HTTP method and URL of this request.
 func (c *Client) To(method string, URL string) *Client {
-	c.req.Method = method
+	c.method = method
 	u, err := url.Parse(URL)
 
 	if err != nil {
@@ -66,7 +82,7 @@ func (c *Client) To(method string, URL string) *Client {
 		return c
 	}
 
-	c.req.URL = u
+	c.url = u
 	c.vals = u.Query()
 
 	return c
@@ -95,7 +111,7 @@ func (c *Client) Delete(URL string) *Client {
 // Set sets the request header entries associated with key to the single
 // element value. It replaces any existing values associated with key.
 func (c *Client) Set(key, value string) *Client {
-	c.req.Header.Set(key, value)
+	c.header.Set(key, value)
 
 	return c
 }
@@ -103,7 +119,7 @@ func (c *Client) Set(key, value string) *Client {
 // Add adds the key, value pair to the request header.It appends to any
 // existing values associated with key.
 func (c *Client) Add(key, value string) *Client {
-	c.req.Header.Add(key, value)
+	c.header.Add(key, value)
 
 	return c
 }
@@ -112,7 +128,7 @@ func (c *Client) Add(key, value string) *Client {
 // existing values associated with key.
 func (c *Client) Header(h http.Header) *Client {
 	for k, v := range h {
-		c.req.Header[k] = v
+		c.header[k] = v
 	}
 
 	return c
@@ -141,7 +157,7 @@ func (c *Client) Query(vals url.Values) *Client {
 
 // Cookie sets the cookie which this request will carry.
 func (c *Client) Cookie(cookie *http.Cookie) *Client {
-	c.req.AddCookie(cookie)
+	c.cookies = append(c.cookies, cookie)
 
 	return c
 }
@@ -169,7 +185,7 @@ func (c *Client) Redirects(count int) *Client {
 // With HTTP Basic Authentication the provided username and password are not
 // encrypted.
 func (c *Client) Auth(name, password string) *Client {
-	c.req.SetBasicAuth(name, password)
+	c.basicAuth = &basicAuthInfo{name: name, password: password}
 
 	return c
 }
@@ -178,35 +194,65 @@ func (c *Client) Auth(name, password string) *Client {
 // the "Content-Type" header of this request will be automatically set to
 // "application/x-www-form-urlencoded".
 func (c *Client) Field(vals url.Values) *Client {
-	c.formValsReader = strings.NewReader(vals.Encode())
+	c.ensureMultiWriter()
+
+	for k, vs := range vals {
+		for _, v := range vs {
+			if err := c.mw.WriteField(k, v); err != nil {
+				c.err = err
+				return c
+			}
+		}
+	}
 
 	return c
 }
 
 // Attach adds the attached file to the form.
 func (c *Client) Attach(name, path, filename string) *Client {
-	// TODO
+	c.ensureMultiWriter()
+
+	fw, err := c.mw.CreateFormFile(name, filename)
+
+	if err != nil {
+		c.err = err
+		return c
+	}
+
+	file, err := os.Open(path)
+
+	if err != nil {
+		c.err = err
+		return c
+	}
+
+	if _, err = io.Copy(fw, file); err != nil {
+		c.err = err
+		return c
+	}
+
 	return c
 }
 
 // End sends the request and get the response of it.
 func (c *Client) End() (*Response, error) {
-	// TODO: multipart
-	if c.req.URL == nil {
+	if c.url == nil {
 		return nil, ErrLackURL
 	}
 
-	if c.req.Method == "" {
+	if c.method == "" {
 		return nil, ErrLackMethod
 	}
-
-	c.handleForm()
 
 	if c.err != nil || c.res != nil {
 		return c.res, c.err
 	}
 
-	c.req.URL.RawQuery = c.vals.Encode()
+	if err := c.assembleReq(); err != nil {
+		c.err = err
+		return nil, err
+	}
+
 	ch := make(chan struct{})
 
 	go func() {
@@ -245,22 +291,32 @@ func (c *Client) JSON() (*simplejson.Json, error) {
 	return c.res.JSON()
 }
 
-func (c *Client) handleForm() {
-	if c.formValsReader == nil {
-		return
+func (c *Client) ensureMultiWriter() {
+	if c.mw == nil {
+		c.mwBuf = bytes.NewBuffer(nil)
+		c.mw = multipart.NewWriter(c.mwBuf)
+	}
+}
+
+func (c *Client) assembleReq() error {
+	c.url.RawQuery = c.vals.Encode()
+
+	req, err := http.NewRequest(c.method, c.url.String(), c.mwBuf)
+
+	if err != nil {
+		return err
 	}
 
-	if c.req.Method != http.MethodPost {
-		c.err = ErrNotPOST
-		return
+	c.req = req
+	c.req.Header = c.header
+
+	if c.basicAuth != nil {
+		c.req.SetBasicAuth(c.basicAuth.name, c.basicAuth.password)
 	}
 
-	c.req.Header.Set(headers.ContentType, "application/x-www-form-urlencoded")
-
-	rc, ok := c.formValsReader.(io.ReadCloser)
-	if !ok {
-		rc = ioutil.NopCloser(c.formValsReader)
+	for _, cookie := range c.cookies {
+		c.req.AddCookie(cookie)
 	}
 
-	c.req.Body = rc
+	return nil
 }
