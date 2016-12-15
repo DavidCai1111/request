@@ -3,6 +3,7 @@ package request
 import (
 	"errors"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -20,6 +21,9 @@ var (
 	ErrTimeout            = errors.New("request: request time out")
 	ErrExceedMaxRedirects = errors.New("request: exceed max redirects")
 	ErrBasicAuthFailed    = errors.New("request: basic auth failed")
+	ErrNotPOST            = errors.New("request: method is not POST when use form")
+	ErrLackURL            = errors.New("request: lack URL")
+	ErrLackMethod         = errors.New("request: lack method")
 )
 
 type maxRedirects int
@@ -35,6 +39,7 @@ func (mr maxRedirects) check(req *http.Request, via []*http.Request) error {
 type Client struct {
 	cli            *http.Client
 	req            *http.Request
+	res            *Response
 	err            error
 	vals           url.Values
 	timeout        time.Duration
@@ -186,29 +191,76 @@ func (c *Client) Attach(name, path, filename string) *Client {
 
 // End sends the request and get the response of it.
 func (c *Client) End() (*Response, error) {
-	// TODO: timeout, multipart
+	// TODO: multipart
+	if c.req.URL == nil {
+		return nil, ErrLackURL
+	}
+
+	if c.req.Method == "" {
+		return nil, ErrLackMethod
+	}
+
+	c.handleForm()
+
+	if c.err != nil || c.res != nil {
+		return c.res, c.err
+	}
+
+	c.req.URL.RawQuery = c.vals.Encode()
+	ch := make(chan struct{})
+
+	go func() {
+		defer close(ch)
+		defer func() { ch <- struct{}{} }()
+
+		response, err := c.cli.Do(c.req)
+
+		if err != nil {
+			c.err = err
+			return
+		}
+
+		c.res = &Response{Response: response}
+	}()
+
+	select {
+	case <-ch:
+	case <-time.After(c.timeout):
+		return nil, ErrTimeout
+	}
+
 	if c.err != nil {
 		return nil, c.err
 	}
 
-	c.req.URL.RawQuery = c.vals.Encode()
-
-	res, err := c.cli.Do(c.req)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &Response{Response: res}, nil
+	return c.res, nil
 }
 
 // JSON sends the request and get the JSON of the response.
 func (c *Client) JSON() (*simplejson.Json, error) {
-	res, err := c.End()
-
-	if err != nil {
+	if _, err := c.End(); err != nil {
 		return nil, err
 	}
 
-	return res.JSON()
+	return c.res.JSON()
+}
+
+func (c *Client) handleForm() {
+	if c.formValsReader == nil {
+		return
+	}
+
+	if c.req.Method != http.MethodPost {
+		c.err = ErrNotPOST
+		return
+	}
+
+	c.req.Header.Set(headers.ContentType, "application/x-www-form-urlencoded")
+
+	rc, ok := c.formValsReader.(io.ReadCloser)
+	if !ok {
+		rc = ioutil.NopCloser(c.formValsReader)
+	}
+
+	c.req.Body = rc
 }
