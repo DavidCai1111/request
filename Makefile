@@ -1,5 +1,5 @@
 test:
-	go test -v
+	go test -v -race
 
 cover:
 	rm -rf *.coverprofile
