@@ -46,14 +46,14 @@ type Client struct {
 	cli       *http.Client
 	req       *http.Request
 	res       *Response
+	method    string
+	url       *url.URL
+	vals      url.Values
 	mw        *multipart.Writer
 	mwBuf     *bytes.Buffer
-	url       *url.URL
-	cookies   []*http.Cookie
 	basicAuth *basicAuthInfo
 	header    http.Header
-	method    string
-	vals      url.Values
+	cookies   []*http.Cookie
 	timeout   time.Duration
 	redirects maxRedirects
 	err       error
