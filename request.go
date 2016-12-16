@@ -2,6 +2,7 @@ package request
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"io"
 	"mime/multipart"
@@ -25,6 +26,8 @@ var (
 	ErrNotPOST            = errors.New("request: method is not POST when use form")
 	ErrLackURL            = errors.New("request: lack URL")
 	ErrLackMethod         = errors.New("request: lack method")
+	ErrBodyAlreadySet     = errors.New("request: request body has already been set")
+	ErrStatusNotOk        = errors.New("request: status code is not ok (>= 400)")
 )
 
 type maxRedirects int
@@ -51,6 +54,7 @@ type Client struct {
 	vals      url.Values
 	mw        *multipart.Writer
 	mwBuf     *bytes.Buffer
+	body      io.Reader
 	basicAuth *basicAuthInfo
 	header    http.Header
 	cookies   []*http.Cookie
@@ -69,6 +73,7 @@ func New(c *http.Client) *Client {
 		cli:     c,
 		header:  http.Header{},
 		cookies: []*http.Cookie{},
+		timeout: 30 * time.Second,
 	}
 }
 
@@ -98,9 +103,9 @@ func (c *Client) Post(URL string) *Client {
 	return c.To(http.MethodPost, URL)
 }
 
-// Head is the shortcut of To("HEAD", URL) .
-func (c *Client) Head(URL string) *Client {
-	return c.To(http.MethodHead, URL)
+// Put is the shortcut of To("PUT", URL) .
+func (c *Client) Put(URL string) *Client {
+	return c.To(http.MethodPut, URL)
 }
 
 // Delete is the shortcut of To("DELETE", URL) .
@@ -155,6 +160,26 @@ func (c *Client) Query(vals url.Values) *Client {
 	return c
 }
 
+// Send sends the json request body.
+func (c *Client) Send(body interface{}) *Client {
+	if c.body != nil || c.mw != nil {
+		c.err = ErrBodyAlreadySet
+		return c
+	}
+
+	j, err := json.Marshal(body)
+
+	if err != nil {
+		c.err = err
+		return c
+	}
+
+	c.Set(headers.ContentType, "application/json")
+	c.body = bytes.NewReader(j)
+
+	return c
+}
+
 // Cookie sets the cookie which this request will carry.
 func (c *Client) Cookie(cookie *http.Cookie) *Client {
 	c.cookies = append(c.cookies, cookie)
@@ -194,6 +219,11 @@ func (c *Client) Auth(name, password string) *Client {
 // the "Content-Type" header of this request will be automatically set to
 // "application/x-www-form-urlencoded".
 func (c *Client) Field(vals url.Values) *Client {
+	if c.body != nil {
+		c.err = ErrBodyAlreadySet
+		return c
+	}
+
 	c.ensureMultiWriter()
 
 	for k, vs := range vals {
@@ -210,6 +240,11 @@ func (c *Client) Field(vals url.Values) *Client {
 
 // Attach adds the attached file to the form.
 func (c *Client) Attach(name, path, filename string) *Client {
+	if c.body != nil {
+		c.err = ErrBodyAlreadySet
+		return c
+	}
+
 	c.ensureMultiWriter()
 
 	fw, err := c.mw.CreateFormFile(name, filename)
@@ -291,6 +326,15 @@ func (c *Client) JSON() (*simplejson.Json, error) {
 	return c.res.JSON()
 }
 
+// Text sends the request and get the text of the response.
+func (c *Client) Text() (string, error) {
+	if _, err := c.End(); err != nil {
+		return "", err
+	}
+
+	return c.res.Text()
+}
+
 func (c *Client) ensureMultiWriter() {
 	if c.mw == nil {
 		c.mwBuf = bytes.NewBuffer(nil)
@@ -301,7 +345,15 @@ func (c *Client) ensureMultiWriter() {
 func (c *Client) assembleReq() error {
 	c.url.RawQuery = c.vals.Encode()
 
-	req, err := http.NewRequest(c.method, c.url.String(), c.mwBuf)
+	var buf io.Reader
+
+	if c.mwBuf != nil {
+		buf = c.mwBuf
+	} else {
+		buf = c.body
+	}
+
+	req, err := http.NewRequest(c.method, c.url.String(), buf)
 
 	if err != nil {
 		return err

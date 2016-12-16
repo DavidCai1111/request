@@ -2,6 +2,7 @@ package request
 
 import (
 	"bytes"
+	"compress/flate"
 	"compress/gzip"
 	"compress/zlib"
 	"io"
@@ -55,9 +56,7 @@ func (r *Response) Content() ([]byte, error) {
 			return nil, err
 		}
 	case "deflate":
-		if reader, err = zlib.NewReader(r.raw); err != nil {
-			return nil, err
-		}
+		reader = flate.NewReader(r.raw)
 	}
 
 	if reader == nil {
@@ -68,7 +67,16 @@ func (r *Response) Content() ([]byte, error) {
 	b, err := ioutil.ReadAll(reader)
 
 	if err != nil {
-		return nil, err
+		var zlibReader io.ReadCloser
+
+		if zlibReader, err = zlib.NewReader(r.raw); err != nil {
+			return nil, err
+		}
+		defer zlibReader.Close()
+
+		if b, err = ioutil.ReadAll(zlibReader); err != nil {
+			return nil, err
+		}
 	}
 
 	return b, nil
@@ -76,6 +84,10 @@ func (r *Response) Content() ([]byte, error) {
 
 // JSON returns the reponse body in forms of JSON.
 func (r *Response) JSON() (*simplejson.Json, error) {
+	if !r.OK() {
+		return nil, ErrStatusNotOk
+	}
+
 	b, err := r.Content()
 
 	if err != nil {
@@ -87,6 +99,10 @@ func (r *Response) JSON() (*simplejson.Json, error) {
 
 // Text returns the reponse body in forms of text string.
 func (r *Response) Text() (string, error) {
+	if !r.OK() {
+		return "", ErrStatusNotOk
+	}
+
 	b, err := r.Content()
 
 	if err != nil {
@@ -119,4 +135,9 @@ func (r *Response) URL() (*url.URL, error) {
 // Reason returns the status text of the response status code.
 func (r *Response) Reason() string {
 	return http.StatusText(r.StatusCode)
+}
+
+// OK returns whether reponse status code is < 400.
+func (r *Response) OK() bool {
+	return r.StatusCode < 400
 }
