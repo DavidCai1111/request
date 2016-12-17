@@ -18,15 +18,15 @@ import (
 )
 
 // Version is this package's version number.
-const Version = "0.1.1"
+const Version = "1.0.0"
 
 // Errors used by this package.
 var (
-	ErrTimeout         = errors.New("request: request time out")
+	ErrTimeout         = errors.New("request: request timeout")
 	ErrBasicAuthFailed = errors.New("request: basic auth failed")
 	ErrNotPOST         = errors.New("request: method is not POST when use form")
-	ErrLackURL         = errors.New("request: lack URL")
-	ErrLackMethod      = errors.New("request: lack method")
+	ErrLackURL         = errors.New("request: request lacks URL")
+	ErrLackMethod      = errors.New("request: request lacks method")
 	ErrBodyAlreadySet  = errors.New("request: request body has already been set")
 	ErrStatusNotOk     = errors.New("request: status code is not ok (>= 400)")
 )
@@ -302,7 +302,7 @@ func (c *Client) End() (*Response, error) {
 		return c.res, c.err
 	}
 
-	if err := c.assembleReq(); err != nil {
+	if err := c.assemble(); err != nil {
 		c.err = err
 		return nil, err
 	}
@@ -361,7 +361,7 @@ func (c *Client) ensureMultiWriter() {
 	}
 }
 
-func (c *Client) assembleReq() error {
+func (c *Client) assemble() error {
 	c.url.RawQuery = c.vals.Encode()
 
 	var buf io.Reader

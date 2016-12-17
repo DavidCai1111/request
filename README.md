@@ -2,9 +2,9 @@
 [![Build Status](https://travis-ci.org/DavidCai1993/request.svg?branch=master)](https://travis-ci.org/DavidCai1993/request)
 [![Coverage Status](https://coveralls.io/repos/github/DavidCai1993/request/badge.svg?branch=master)](https://coveralls.io/github/DavidCai1993/request?branch=master)
 [![GoDoc](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](http://godoc.org/github.com/DavidCai1993/request)
-[![License](http://img.shields.io/badge/license-mit-blue.svg?style=flat-square)](https://raw.githubusercontent.com/teambition/trie-mux/master/LICENSE)
+[![License](http://img.shields.io/badge/license-mit-blue.svg?style=flat-square)](https://raw.githubusercontent.com/DavidCai1993/request/master/LICENSE)
 
-A concise HTTP request client fo Gopher.
+A concise HTTP request client fo Gopher. It provides elegant and chainalbe API to make you request with happiness.
 
 ## Installation
 

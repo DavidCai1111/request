@@ -125,6 +125,14 @@ func (s *RequestSuite) TestToErr() {
 	s.EqualError(err, "test")
 }
 
+func (s *RequestSuite) TestToWrongURL() {
+	_, err := s.c.
+		To(http.MethodGet, "%").
+		End()
+
+	s.NotNil(err)
+}
+
 func (s *RequestSuite) TestSet() {
 	j, err := s.c.
 		Get(testHost+"/headers").
@@ -185,6 +193,12 @@ func (s *RequestSuite) TestAccept() {
 	s.Equal("text/plain+test", j.GetPath("headers", headers.Accept).MustString())
 }
 
+func (s *RequestSuite) TestTextEmptyURL() {
+	_, err := s.c.Text()
+
+	s.Equal(ErrLackURL, err)
+}
+
 func (s *RequestSuite) TestPathQuery() {
 	j, err := s.c.
 		Get(testHost + "/get?a=b").
@@ -225,6 +239,25 @@ func (s *RequestSuite) TestSend() {
 	s.Nil(err)
 	s.Equal("v1", j.GetPath("json", "k1").MustString())
 	s.Equal("v2", j.GetPath("json", "k2").MustString())
+}
+
+func (s *RequestSuite) TestSendAfterAttach() {
+	_, err := s.c.
+		Post(testHost+"/post").
+		Attach("test.md", "./README.md", "README.md").
+		Send(nil).
+		JSON()
+
+	s.Equal(ErrBodyAlreadySet, err)
+}
+
+func (s *RequestSuite) TestSendCanNotMarshel() {
+	_, err := s.c.
+		Post(testHost + "/post").
+		Send(make(chan bool)).
+		JSON()
+
+	s.NotNil(err)
 }
 
 func (s *RequestSuite) TestCookie() {
@@ -308,6 +341,25 @@ func (s *RequestSuite) TestAttach() {
 	s.NotEmpty(j.GetPath("files", "test.md").MustString())
 }
 
+func (s *RequestSuite) TestAttachAfterSend() {
+	_, err := s.c.
+		Post(testHost+"/post").
+		Send(true).
+		Attach("test.md", "./README.md", "README.md").
+		JSON()
+
+	s.Equal(ErrBodyAlreadySet, err)
+}
+
+func (s *RequestSuite) TestAttachCanNotOpenFile() {
+	_, err := s.c.
+		Post(testHost+"/post").
+		Attach("test.md", "./not-exists.md", "README.md").
+		JSON()
+
+	s.NotNil(err)
+}
+
 func (s *RequestSuite) TestFieldsAndAttach() {
 	v := url.Values{
 		"k1": []string{"v1", "v2"},
@@ -325,6 +377,24 @@ func (s *RequestSuite) TestFieldsAndAttach() {
 	s.Equal("v2", j.GetPath("form", "k1").MustArray()[1])
 	s.Equal("v3", j.GetPath("form", "k2").MustString())
 	s.NotEmpty(j.GetPath("files", "test.md").MustString())
+}
+
+func (s *RequestSuite) TestEndWithoutURL() {
+	_, err := s.c.End()
+
+	s.Equal(ErrLackURL, err)
+}
+
+func (s *RequestSuite) TestEndWithoutMethod() {
+	u, err := url.Parse(testHost)
+
+	s.Nil(err)
+
+	s.c.url = u
+
+	_, err = s.c.End()
+
+	s.Equal(ErrLackMethod, err)
 }
 
 func TestRequest(t *testing.T) {

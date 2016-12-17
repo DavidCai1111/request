@@ -65,6 +65,8 @@ func (r *Response) Content() ([]byte, error) {
 	}
 
 	if reader == nil {
+		r.content = rawBytes
+
 		return rawBytes, nil
 	}
 

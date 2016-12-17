@@ -26,6 +26,32 @@ func (s *ResponseSuite) TestGet() {
 	s.Equal("OK", res.Reason())
 }
 
+func (s *ResponseSuite) TestRaw() {
+	res, err := s.c.Get(testHost).End()
+	s.Nil(err)
+
+	raw1, err := res.Raw()
+	s.Nil(err)
+
+	raw2, err := res.Raw()
+	s.Nil(err)
+
+	s.Equal(raw1, raw2)
+}
+
+func (s *ResponseSuite) TestContent() {
+	res, err := s.c.Get(testHost).End()
+	s.Nil(err)
+
+	c1, err := res.Content()
+	s.Nil(err)
+
+	c2, err := res.Content()
+	s.Nil(err)
+
+	s.Equal(c1, c2)
+}
+
 func (s *ResponseSuite) TestURL() {
 	res, err := s.c.Get(testHost).End()
 
@@ -36,6 +62,20 @@ func (s *ResponseSuite) TestURL() {
 
 	s.Nil(err)
 	s.Equal(testHost, u.String())
+}
+
+func (s *ResponseSuite) TestRedirectURL() {
+	res, err := s.c.Get(testHost).End()
+
+	res.StatusCode = http.StatusMovedPermanently
+	res.Header.Set(headers.Location, "test")
+
+	s.Nil(err)
+
+	u, err := res.URL()
+
+	s.Nil(err)
+	s.Equal(testHost+"/test", u.String())
 }
 
 func (s *ResponseSuite) TestGzip() {
