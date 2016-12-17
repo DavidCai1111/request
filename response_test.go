@@ -15,7 +15,7 @@ type ResponseSuite struct {
 }
 
 func (s *ResponseSuite) SetupTest() {
-	s.c = New(nil)
+	s.c = New()
 }
 
 func (s *ResponseSuite) TestGet() {

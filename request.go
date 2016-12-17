@@ -18,7 +18,7 @@ import (
 )
 
 // Version is this package's version number.
-const Version = "0.0.1"
+const Version = "0.1.0"
 
 // Errors used by this package.
 var (
@@ -66,13 +66,9 @@ type Client struct {
 }
 
 // New returns an new HTTP request Client.
-func New(c *http.Client) *Client {
-	if c == nil {
-		c = &http.Client{}
-	}
-
+func New() *Client {
 	return &Client{
-		cli:      c,
+		cli:      &http.Client{},
 		header:   http.Header{},
 		formVals: url.Values{},
 		cookies:  []*http.Cookie{},
@@ -94,6 +90,26 @@ func (c *Client) To(method string, URL string) *Client {
 	c.vals = u.Query()
 
 	return c
+}
+
+// Get is the shortcut of New().Get(URL) .
+func Get(URL string) *Client {
+	return New().Get(URL)
+}
+
+// Post is the shortcut of New().Post(URL) .
+func Post(URL string) *Client {
+	return New().Post(URL)
+}
+
+// Put is the shortcut of New().Put(URL) .
+func Put(URL string) *Client {
+	return New().Put(URL)
+}
+
+// Delete is the shortcut of New().Delete(URL) .
+func Delete(URL string) *Client {
+	return New().Delete(URL)
 }
 
 // Get is the shortcut of To("GET", URL) .

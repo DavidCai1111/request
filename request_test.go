@@ -20,11 +20,18 @@ type RequestSuite struct {
 }
 
 func (s *RequestSuite) SetupTest() {
-	s.c = New(nil)
+	s.c = New()
 }
 
 func (s *RequestSuite) TestGet() {
 	res, err := s.c.Get(testHost).End()
+
+	s.Nil(err)
+	s.Equal(http.StatusOK, res.StatusCode)
+}
+
+func (s *RequestSuite) TestQuickGet() {
+	res, err := Get(testHost).End()
 
 	s.Nil(err)
 	s.Equal(http.StatusOK, res.StatusCode)
@@ -38,6 +45,21 @@ func (s *RequestSuite) TestPost() {
 
 	j, err := s.c.
 		Post(testHost + "/post").
+		Send(body).
+		JSON()
+
+	s.Nil(err)
+	s.Equal(body["k1"], j.GetPath("json", "k1").MustString())
+	s.Equal(body["k2"], j.GetPath("json", "k2").MustString())
+}
+
+func (s *RequestSuite) TestQuickPost() {
+	body := map[string]string{
+		"k1": "v1",
+		"k2": "v2",
+	}
+
+	j, err := Post(testHost + "/post").
 		Send(body).
 		JSON()
 
@@ -62,10 +84,32 @@ func (s *RequestSuite) TestPut() {
 	s.Equal(body["k2"], j.GetPath("json", "k2").MustString())
 }
 
+func (s *RequestSuite) TestQuickPut() {
+	body := map[string]string{
+		"k1": "v1",
+		"k2": "v2",
+	}
+
+	j, err := Put(testHost + "/put").
+		Send(body).
+		JSON()
+
+	s.Nil(err)
+	s.Equal(body["k1"], j.GetPath("json", "k1").MustString())
+	s.Equal(body["k2"], j.GetPath("json", "k2").MustString())
+}
+
 func (s *RequestSuite) TestDelete() {
 	res, err := s.c.
 		Delete(testHost + "/delete?k1=v1&k2=v2").
 		End()
+
+	s.Nil(err)
+	s.True(res.OK())
+}
+
+func (s *RequestSuite) TestQuickDelete() {
+	res, err := Delete(testHost + "/delete?k1=v1&k2=v2").End()
 
 	s.Nil(err)
 	s.True(res.OK())
