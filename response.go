@@ -18,7 +18,8 @@ import (
 type Response struct {
 	*http.Response
 
-	raw *bytes.Buffer
+	raw     *bytes.Buffer
+	content []byte
 }
 
 // Raw returns the raw body of the response.
@@ -42,7 +43,11 @@ func (r *Response) Raw() ([]byte, error) {
 // Content returns the content of the response body, it will handle
 // the compression.
 func (r *Response) Content() ([]byte, error) {
-	raw, err := r.Raw()
+	if r.content != nil {
+		return r.content, nil
+	}
+
+	rawBytes, err := r.Raw()
 
 	if err != nil {
 		return nil, err
@@ -52,24 +57,26 @@ func (r *Response) Content() ([]byte, error) {
 
 	switch r.Header.Get(headers.ContentEncoding) {
 	case "gzip":
-		if reader, err = gzip.NewReader(r.raw); err != nil {
+		if reader, err = gzip.NewReader(bytes.NewBuffer(r.raw.Bytes())); err != nil {
 			return nil, err
 		}
 	case "deflate":
-		reader = flate.NewReader(r.raw)
+		reader = flate.NewReader(bytes.NewBuffer(r.raw.Bytes()))
 	}
 
 	if reader == nil {
-		return raw, nil
+		return rawBytes, nil
 	}
 
 	defer reader.Close()
 	b, err := ioutil.ReadAll(reader)
 
+	// If gzip or deflate decoding failed, try zlib decoding instead.
+	// The body may be wrapped in the zlib data format.
 	if err != nil {
 		var zlibReader io.ReadCloser
 
-		if zlibReader, err = zlib.NewReader(r.raw); err != nil {
+		if zlibReader, err = zlib.NewReader(bytes.NewBuffer(r.raw.Bytes())); err != nil {
 			return nil, err
 		}
 		defer zlibReader.Close()
@@ -78,6 +85,8 @@ func (r *Response) Content() ([]byte, error) {
 			return nil, err
 		}
 	}
+
+	r.content = b
 
 	return b, nil
 }

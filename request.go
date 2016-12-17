@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -21,21 +22,20 @@ const Version = "0.0.1"
 
 // Errors used by this package.
 var (
-	ErrTimeout            = errors.New("request: request time out")
-	ErrExceedMaxRedirects = errors.New("request: exceed max redirects")
-	ErrBasicAuthFailed    = errors.New("request: basic auth failed")
-	ErrNotPOST            = errors.New("request: method is not POST when use form")
-	ErrLackURL            = errors.New("request: lack URL")
-	ErrLackMethod         = errors.New("request: lack method")
-	ErrBodyAlreadySet     = errors.New("request: request body has already been set")
-	ErrStatusNotOk        = errors.New("request: status code is not ok (>= 400)")
+	ErrTimeout         = errors.New("request: request time out")
+	ErrBasicAuthFailed = errors.New("request: basic auth failed")
+	ErrNotPOST         = errors.New("request: method is not POST when use form")
+	ErrLackURL         = errors.New("request: lack URL")
+	ErrLackMethod      = errors.New("request: lack method")
+	ErrBodyAlreadySet  = errors.New("request: request body has already been set")
+	ErrStatusNotOk     = errors.New("request: status code is not ok (>= 400)")
 )
 
 type maxRedirects int
 
 func (mr maxRedirects) check(req *http.Request, via []*http.Request) error {
 	if len(via) >= int(mr) {
-		return ErrExceedMaxRedirects
+		return fmt.Errorf("request: exceed max redirects")
 	}
 	return nil
 }
