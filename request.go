@@ -18,7 +18,7 @@ import (
 )
 
 // Version is this package's version number.
-const Version = "0.1.0"
+const Version = "0.1.1"
 
 // Errors used by this package.
 var (
@@ -45,7 +45,7 @@ type basicAuthInfo struct {
 	password string
 }
 
-// Client is a HTTP client.
+// Client is a HTTP client which provides many chainable methods.
 type Client struct {
 	cli       *http.Client
 	req       *http.Request
@@ -65,7 +65,7 @@ type Client struct {
 	err       error
 }
 
-// New returns an new HTTP request Client.
+// New returns an new instance of Client.
 func New() *Client {
 	return &Client{
 		cli:      &http.Client{},
@@ -76,7 +76,7 @@ func New() *Client {
 	}
 }
 
-// To defines the HTTP method and URL of this request.
+// To defines the request HTTP method and URL.
 func (c *Client) To(method string, URL string) *Client {
 	c.method = method
 	u, err := url.Parse(URL)
@@ -92,42 +92,43 @@ func (c *Client) To(method string, URL string) *Client {
 	return c
 }
 
-// Get is the shortcut of New().Get(URL) .
+// Get equals New().Get(URL) to let you start a GET request conveniently.
 func Get(URL string) *Client {
 	return New().Get(URL)
 }
 
-// Post is the shortcut of New().Post(URL) .
+// Post equals New().Post(URL) to let you start a POST request conveniently.
 func Post(URL string) *Client {
 	return New().Post(URL)
 }
 
-// Put is the shortcut of New().Put(URL) .
+// Put equals New().Put(URL) to let you start a PUT request conveniently.
 func Put(URL string) *Client {
 	return New().Put(URL)
 }
 
-// Delete is the shortcut of New().Delete(URL) .
+// Delete equals New().Delete(URL) to let you start a DELETE request
+// conveniently.
 func Delete(URL string) *Client {
 	return New().Delete(URL)
 }
 
-// Get is the shortcut of To("GET", URL) .
+// Get equals To("GET", URL) .
 func (c *Client) Get(URL string) *Client {
 	return c.To(http.MethodGet, URL)
 }
 
-// Post is the shortcut of To("POST", URL) .
+// Post equals To("POST", URL) .
 func (c *Client) Post(URL string) *Client {
 	return c.To(http.MethodPost, URL)
 }
 
-// Put is the shortcut of To("PUT", URL) .
+// Put equals To("PUT", URL) .
 func (c *Client) Put(URL string) *Client {
 	return c.To(http.MethodPut, URL)
 }
 
-// Delete is the shortcut of To("DELETE", URL) .
+// Delete equals To("DELETE", URL) .
 func (c *Client) Delete(URL string) *Client {
 	return c.To(http.MethodDelete, URL)
 }
@@ -179,7 +180,8 @@ func (c *Client) Query(vals url.Values) *Client {
 	return c
 }
 
-// Send sends the json request body.
+// Send sends the body in JSON format, body can be anything which can be
+// Marshaled.
 func (c *Client) Send(body interface{}) *Client {
 	if c.body != nil || c.mw != nil {
 		c.err = ErrBodyAlreadySet
@@ -199,23 +201,23 @@ func (c *Client) Send(body interface{}) *Client {
 	return c
 }
 
-// Cookie sets the cookie which this request will carry.
+// Cookie adds the cookie to the request.
 func (c *Client) Cookie(cookie *http.Cookie) *Client {
 	c.cookies = append(c.cookies, cookie)
 
 	return c
 }
 
-// Timeout sets the timeout of this request, if the request
-// is timeout, it will return ErrTimeout.
+// Timeout sets the timeout of the request. If not set, request
+// will use its default policy, which will timeout after 30 seconds.
 func (c *Client) Timeout(timeout time.Duration) *Client {
 	c.timeout = timeout
 
 	return c
 }
 
-// Redirects sets the max redirects count for this request.
-// If not setted, request will use its default policy,
+// Redirects sets the max redirects count for the request.
+// If not set, request will use its default policy,
 // which is to stop after 10 consecutive requests.
 func (c *Client) Redirects(count int) *Client {
 	c.cli.CheckRedirect = maxRedirects(count).check
@@ -235,7 +237,7 @@ func (c *Client) Auth(name, password string) *Client {
 }
 
 // Field sets the field values like form fields in HTML. Once it was set,
-// the "Content-Type" header of this request will be automatically set to
+// the "Content-Type" header of the request will be automatically set to
 // "application/x-www-form-urlencoded".
 func (c *Client) Field(vals url.Values) *Client {
 	for k, vs := range vals {
@@ -249,7 +251,9 @@ func (c *Client) Field(vals url.Values) *Client {
 	return c
 }
 
-// Attach adds the attached file to the form.
+// Attach adds the attachment file to the form. Once the attachment was
+// set, the "Content-Type" will be set to "multipart/form-data; boundary=xxx"
+// automatically.
 func (c *Client) Attach(fieldname, path, filename string) *Client {
 	if c.body != nil {
 		c.err = ErrBodyAlreadySet
@@ -280,7 +284,11 @@ func (c *Client) Attach(fieldname, path, filename string) *Client {
 	return c
 }
 
-// End sends the request and get the response of it.
+// End sends the HTTP request and returns the HTTP reponse.
+//
+// An error is returned if caused by client policy (such as timeout), or
+// failure to speak HTTP (such as a network connectivity problem), or generated
+// by former chained methods. A non-2xx status code doesn't cause an error.
 func (c *Client) End() (*Response, error) {
 	if c.url == nil {
 		return nil, ErrLackURL
@@ -328,7 +336,7 @@ func (c *Client) End() (*Response, error) {
 	return c.res, nil
 }
 
-// JSON sends the request and get the JSON of the response.
+// JSON sends the HTTP request and returns the reponse body with JSON format.
 func (c *Client) JSON() (*simplejson.Json, error) {
 	if _, err := c.End(); err != nil {
 		return nil, err
@@ -337,7 +345,7 @@ func (c *Client) JSON() (*simplejson.Json, error) {
 	return c.res.JSON()
 }
 
-// Text sends the request and get the text of the response.
+// Text sends the HTTP request and returns the reponse body with text format.
 func (c *Client) Text() (string, error) {
 	if _, err := c.End(); err != nil {
 		return "", err

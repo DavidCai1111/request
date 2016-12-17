@@ -9,14 +9,12 @@ A concise HTTP request client fo Gopher.
 ## Installation
 
 ```go
-go get -u github.com/DavidCai1993/jwt
+go get -u github.com/DavidCai1993/request
 ```
 
 ## Documentation
 
-```go
 API documentation can be found here: https://godoc.org/github.com/DavidCai1993/request
-```
 
 ## Usage
 

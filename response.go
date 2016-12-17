@@ -14,7 +14,7 @@ import (
 	"github.com/go-http-utils/headers"
 )
 
-// Response represents a HTTP response.
+// Response represents the response from a HTTP request.
 type Response struct {
 	*http.Response
 
@@ -22,7 +22,7 @@ type Response struct {
 	content []byte
 }
 
-// Raw returns the raw body of the response.
+// Raw returns the raw bytes body of the response.
 func (r *Response) Raw() ([]byte, error) {
 	if r.raw != nil {
 		return r.raw.Bytes(), nil
@@ -91,7 +91,7 @@ func (r *Response) Content() ([]byte, error) {
 	return b, nil
 }
 
-// JSON returns the reponse body in forms of JSON.
+// JSON returns the reponse body with JSON format.
 func (r *Response) JSON() (*simplejson.Json, error) {
 	if !r.OK() {
 		return nil, ErrStatusNotOk
@@ -106,7 +106,7 @@ func (r *Response) JSON() (*simplejson.Json, error) {
 	return simplejson.NewJson(b)
 }
 
-// Text returns the reponse body in forms of text string.
+// Text returns the reponse body with text format.
 func (r *Response) Text() (string, error) {
 	if !r.OK() {
 		return "", ErrStatusNotOk
@@ -146,7 +146,7 @@ func (r *Response) Reason() string {
 	return http.StatusText(r.StatusCode)
 }
 
-// OK returns whether reponse status code is < 400.
+// OK returns whether the reponse status code is less than 400.
 func (r *Response) OK() bool {
 	return r.StatusCode < 400
 }
