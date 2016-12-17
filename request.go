@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 	"time"
 
 	simplejson "github.com/bitly/go-simplejson"
@@ -52,6 +53,7 @@ type Client struct {
 	method    string
 	url       *url.URL
 	vals      url.Values
+	formVals  url.Values
 	mw        *multipart.Writer
 	mwBuf     *bytes.Buffer
 	body      io.Reader
@@ -70,10 +72,11 @@ func New(c *http.Client) *Client {
 	}
 
 	return &Client{
-		cli:     c,
-		header:  http.Header{},
-		cookies: []*http.Cookie{},
-		timeout: 30 * time.Second,
+		cli:      c,
+		header:   http.Header{},
+		formVals: url.Values{},
+		cookies:  []*http.Cookie{},
+		timeout:  30 * time.Second,
 	}
 }
 
@@ -219,27 +222,19 @@ func (c *Client) Auth(name, password string) *Client {
 // the "Content-Type" header of this request will be automatically set to
 // "application/x-www-form-urlencoded".
 func (c *Client) Field(vals url.Values) *Client {
-	if c.body != nil {
-		c.err = ErrBodyAlreadySet
-		return c
-	}
-
-	c.ensureMultiWriter()
-
 	for k, vs := range vals {
 		for _, v := range vs {
-			if err := c.mw.WriteField(k, v); err != nil {
-				c.err = err
-				return c
-			}
+			c.formVals.Add(k, v)
 		}
 	}
+
+	c.Type("application/x-www-form-urlencoded")
 
 	return c
 }
 
 // Attach adds the attached file to the form.
-func (c *Client) Attach(name, path, filename string) *Client {
+func (c *Client) Attach(fieldname, path, filename string) *Client {
 	if c.body != nil {
 		c.err = ErrBodyAlreadySet
 		return c
@@ -247,14 +242,14 @@ func (c *Client) Attach(name, path, filename string) *Client {
 
 	c.ensureMultiWriter()
 
-	fw, err := c.mw.CreateFormFile(name, filename)
+	file, err := os.Open(path)
 
 	if err != nil {
 		c.err = err
 		return c
 	}
 
-	file, err := os.Open(path)
+	fw, err := c.mw.CreateFormFile(fieldname, filename)
 
 	if err != nil {
 		c.err = err
@@ -348,7 +343,21 @@ func (c *Client) assembleReq() error {
 	var buf io.Reader
 
 	if c.mwBuf != nil {
+		if c.formVals != nil {
+			for k, vs := range c.formVals {
+				for _, v := range vs {
+					if err := c.mw.WriteField(k, v); err != nil {
+						return err
+					}
+				}
+			}
+		}
+
 		buf = c.mwBuf
+		c.mw.Close()
+		c.Type(c.mw.FormDataContentType())
+	} else if c.formVals != nil && c.body == nil {
+		buf = strings.NewReader(c.formVals.Encode())
 	} else {
 		buf = c.body
 	}
