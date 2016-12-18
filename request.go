@@ -18,7 +18,7 @@ import (
 )
 
 // Version is this package's version number.
-const Version = "1.0.0"
+const Version = "1.0.1"
 
 // Errors used by this package.
 var (
@@ -52,7 +52,7 @@ type Client struct {
 	res       *Response
 	method    string
 	url       *url.URL
-	vals      url.Values
+	queryVals url.Values
 	formVals  url.Values
 	mw        *multipart.Writer
 	mwBuf     *bytes.Buffer
@@ -87,7 +87,7 @@ func (c *Client) To(method string, URL string) *Client {
 	}
 
 	c.url = u
-	c.vals = u.Query()
+	c.queryVals = u.Query()
 
 	return c
 }
@@ -173,7 +173,7 @@ func (c *Client) Accept(t string) *Client {
 func (c *Client) Query(vals url.Values) *Client {
 	for k, vs := range vals {
 		for _, v := range vs {
-			c.vals.Add(k, v)
+			c.queryVals.Add(k, v)
 		}
 	}
 
@@ -362,7 +362,7 @@ func (c *Client) ensureMultiWriter() {
 }
 
 func (c *Client) assemble() error {
-	c.url.RawQuery = c.vals.Encode()
+	c.url.RawQuery = c.queryVals.Encode()
 
 	var buf io.Reader
 
