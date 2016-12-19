@@ -5,6 +5,8 @@ import (
 
 	"net/url"
 
+	"time"
+
 	"github.com/DavidCai1993/request"
 	simplejson "github.com/bitly/go-simplejson"
 )
@@ -24,6 +26,7 @@ func Example() {
 	// json has the type *simplejson.Json
 	json, err = request.
 		Post("http://mysite.com").
+		Timeout(30*time.Second).
 		Send(map[string]string{"name": "David"}).
 		Set("X-HEADER-KEY", "foo").
 		Accept("application/json").

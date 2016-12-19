@@ -4,7 +4,7 @@
 [![GoDoc](http://img.shields.io/badge/go-documentation-blue.svg?style=flat-square)](http://godoc.org/github.com/DavidCai1993/request)
 [![License](http://img.shields.io/badge/license-mit-blue.svg?style=flat-square)](https://raw.githubusercontent.com/DavidCai1993/request/master/LICENSE)
 
-A concise HTTP request client fo Gopher. It provides elegant and chainalbe API to make you request with happiness.
+A concise HTTP request client for Go. It provides elegant and chainalbe API to make you request with happiness.
 
 ## Installation
 
@@ -23,6 +23,7 @@ API documentation can be found here: https://godoc.org/github.com/DavidCai1993/r
 ```go
 json, err = request.
   Post("http://mysite.com").
+  Timeout(30*time.Second).
   Send(map[string]string{"name": "David"}).
   Set("X-HEADER-KEY", "foo").
   Accept("application/json").

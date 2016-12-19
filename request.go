@@ -18,11 +18,10 @@ import (
 )
 
 // Version is this package's version number.
-const Version = "1.0.1"
+const Version = "1.1.0"
 
 // Errors used by this package.
 var (
-	ErrTimeout         = errors.New("request: request timeout")
 	ErrBasicAuthFailed = errors.New("request: basic auth failed")
 	ErrNotPOST         = errors.New("request: method is not POST when use form")
 	ErrLackURL         = errors.New("request: request lacks URL")
@@ -72,7 +71,6 @@ func New() *Client {
 		header:   http.Header{},
 		formVals: url.Values{},
 		cookies:  []*http.Cookie{},
-		timeout:  30 * time.Second,
 	}
 }
 
@@ -208,10 +206,13 @@ func (c *Client) Cookie(cookie *http.Cookie) *Client {
 	return c
 }
 
-// Timeout sets the timeout of the request. If not set, request
-// will use its default policy, which will timeout after 30 seconds.
+// Timeout specifies a time limit for the request.
+// The timeout includes connection time, any
+// redirects, and reading the response body. The timer remains
+// running after Get, Head, Post, or End return and will
+// interrupt reading of the response body.
 func (c *Client) Timeout(timeout time.Duration) *Client {
-	c.timeout = timeout
+	c.cli.Timeout = timeout
 
 	return c
 }
@@ -307,31 +308,14 @@ func (c *Client) End() (*Response, error) {
 		return nil, err
 	}
 
-	ch := make(chan struct{})
+	response, err := c.cli.Do(c.req)
 
-	go func() {
-		defer close(ch)
-		defer func() { ch <- struct{}{} }()
-
-		response, err := c.cli.Do(c.req)
-
-		if err != nil {
-			c.err = err
-			return
-		}
-
-		c.res = &Response{Response: response}
-	}()
-
-	select {
-	case <-ch:
-	case <-time.After(c.timeout):
-		return nil, ErrTimeout
+	if err != nil {
+		c.err = err
+		return nil, err
 	}
 
-	if c.err != nil {
-		return nil, c.err
-	}
+	c.res = &Response{Response: response}
 
 	return c.res, nil
 }

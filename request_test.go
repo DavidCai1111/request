@@ -281,7 +281,7 @@ func (s *RequestSuite) TestTimeout() {
 		Timeout(1 * time.Millisecond).
 		JSON()
 
-	s.Equal(err, ErrTimeout)
+	s.NotNil(err)
 }
 
 func (s *RequestSuite) TestRedirect() {
