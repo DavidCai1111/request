@@ -1,21 +1,19 @@
 package request_test
 
 import (
+	"fmt"
 	"net/http"
-
 	"net/url"
-
 	"time"
 
 	"github.com/DavidCai1993/request"
-	simplejson "github.com/bitly/go-simplejson"
 )
 
 var (
 	text string
 	err  error
 	res  *request.Response
-	json *simplejson.Json
+	json interface{}
 )
 
 func Example() {
@@ -37,6 +35,18 @@ func ExampleGet() {
 	json, err = request.
 		Get("http://mysite.com").
 		JSON()
+}
+
+func ExampleGetWithStruct() {
+	type Result struct {
+		Code  int                    `json:"code"`
+		Error string                 `json:"error"`
+		Data  map[string]interface{} `json:"data"`
+	}
+
+	if json, err = request.Get("http://mysite.com").JSON(new(Result)); err == nil {
+		fmt.Println(json.(*Result).Data)
+	}
 }
 
 func ExamplePost() {

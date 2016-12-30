@@ -49,8 +49,8 @@ func (s *RequestSuite) TestPost() {
 		JSON()
 
 	s.Nil(err)
-	s.Equal(body["k1"], j.GetPath("json", "k1").MustString())
-	s.Equal(body["k2"], j.GetPath("json", "k2").MustString())
+	s.Equal(body["k1"], GetPath(j, "json", "k1").(string))
+	s.Equal(body["k2"], GetPath(j, "json", "k2").(string))
 }
 
 func (s *RequestSuite) TestQuickPost() {
@@ -59,13 +59,17 @@ func (s *RequestSuite) TestQuickPost() {
 		"k2": "v2",
 	}
 
+	type result struct {
+		Body map[string]string `json:"json"`
+	}
+
 	j, err := Post(testHost + "/post").
 		Send(body).
-		JSON()
+		JSON(&result{})
 
 	s.Nil(err)
-	s.Equal(body["k1"], j.GetPath("json", "k1").MustString())
-	s.Equal(body["k2"], j.GetPath("json", "k2").MustString())
+	s.Equal(body["k1"], j.(*result).Body["k1"])
+	s.Equal(body["k2"], j.(*result).Body["k2"])
 }
 
 func (s *RequestSuite) TestPut() {
@@ -80,8 +84,8 @@ func (s *RequestSuite) TestPut() {
 		JSON()
 
 	s.Nil(err)
-	s.Equal(body["k1"], j.GetPath("json", "k1").MustString())
-	s.Equal(body["k2"], j.GetPath("json", "k2").MustString())
+	s.Equal(body["k1"], GetPath(j, "json", "k1").(string))
+	s.Equal(body["k2"], GetPath(j, "json", "k2").(string))
 }
 
 func (s *RequestSuite) TestQuickPut() {
@@ -95,8 +99,8 @@ func (s *RequestSuite) TestQuickPut() {
 		JSON()
 
 	s.Nil(err)
-	s.Equal(body["k1"], j.GetPath("json", "k1").MustString())
-	s.Equal(body["k2"], j.GetPath("json", "k2").MustString())
+	s.Equal(body["k1"], GetPath(j, "json", "k1").(string))
+	s.Equal(body["k2"], GetPath(j, "json", "k2").(string))
 }
 
 func (s *RequestSuite) TestDelete() {
@@ -140,7 +144,7 @@ func (s *RequestSuite) TestSet() {
 		JSON()
 
 	s.Nil(err)
-	s.Equal("X-TEST-VALUE", j.GetPath("headers", "X-Test-Key").MustString())
+	s.Equal("X-TEST-VALUE", GetPath(j, "headers", "X-Test-Key").(string))
 }
 
 func (s *RequestSuite) TestAdd() {
@@ -151,7 +155,7 @@ func (s *RequestSuite) TestAdd() {
 		JSON()
 
 	s.Nil(err)
-	s.Equal("X-TEST-VALUE1,X-TEST-VALUE2", j.GetPath("headers", "X-Test-Key").MustString())
+	s.Equal("X-TEST-VALUE1,X-TEST-VALUE2", GetPath(j, "headers", "X-Test-Key").(string))
 }
 
 func (s *RequestSuite) TestHeader() {
@@ -168,9 +172,9 @@ func (s *RequestSuite) TestHeader() {
 		JSON()
 
 	s.Nil(err)
-	s.Equal("X-TEST-VALUE1", j.GetPath("headers", "X-Test-Key1").MustString())
-	s.Equal("X-TEST-VALUE2", j.GetPath("headers", "X-Test-Key2").MustString())
-	s.Equal("X-TEST-VALUE4", j.GetPath("headers", "X-Test-Key3").MustString())
+	s.Equal("X-TEST-VALUE1", GetPath(j, "headers", "X-Test-Key1").(string))
+	s.Equal("X-TEST-VALUE2", GetPath(j, "headers", "X-Test-Key2").(string))
+	s.Equal("X-TEST-VALUE4", GetPath(j, "headers", "X-Test-Key3").(string))
 }
 
 func (s *RequestSuite) TestType() {
@@ -180,7 +184,7 @@ func (s *RequestSuite) TestType() {
 		JSON()
 
 	s.Nil(err)
-	s.Equal("text/plain+test", j.GetPath("headers", headers.ContentType).MustString())
+	s.Equal("text/plain+test", GetPath(j, "headers", headers.ContentType).(string))
 }
 
 func (s *RequestSuite) TestAccept() {
@@ -190,7 +194,7 @@ func (s *RequestSuite) TestAccept() {
 		JSON()
 
 	s.Nil(err)
-	s.Equal("text/plain+test", j.GetPath("headers", headers.Accept).MustString())
+	s.Equal("text/plain+test", GetPath(j, "headers", headers.Accept).(string))
 }
 
 func (s *RequestSuite) TestTextEmptyURL() {
@@ -205,7 +209,7 @@ func (s *RequestSuite) TestPathQuery() {
 		JSON()
 
 	s.Nil(err)
-	s.Equal("b", j.GetPath("args", "a").MustString())
+	s.Equal("b", GetPath(j, "args", "a").(string))
 }
 
 func (s *RequestSuite) TestQuery() {
@@ -220,9 +224,9 @@ func (s *RequestSuite) TestQuery() {
 		JSON()
 
 	s.Nil(err)
-	s.Equal("v1", j.GetPath("args", "k1").MustArray()[0])
-	s.Equal("v2", j.GetPath("args", "k1").MustArray()[1])
-	s.Equal("v3", j.GetPath("args", "k2").MustString())
+	s.Equal("v1", GetIndex(GetPath(j, "args", "k1"), 0).(string))
+	s.Equal("v2", GetIndex(GetPath(j, "args", "k1"), 1).(string))
+	s.Equal("v3", GetPath(j, "args", "k2").(string))
 }
 
 func (s *RequestSuite) TestSend() {
@@ -237,8 +241,8 @@ func (s *RequestSuite) TestSend() {
 		JSON()
 
 	s.Nil(err)
-	s.Equal("v1", j.GetPath("json", "k1").MustString())
-	s.Equal("v2", j.GetPath("json", "k2").MustString())
+	s.Equal("v1", GetPath(j, "json", "k1").(string))
+	s.Equal("v2", GetPath(j, "json", "k2").(string))
 }
 
 func (s *RequestSuite) TestSendAfterAttach() {
@@ -272,7 +276,7 @@ func (s *RequestSuite) TestCookie() {
 		JSON()
 
 	s.Nil(err)
-	s.Equal("v1", j.GetPath("cookies", "k1").MustString())
+	s.Equal("v1", GetPath(j, "cookies", "k1").(string))
 }
 
 func (s *RequestSuite) TestTimeout() {
@@ -300,8 +304,8 @@ func (s *RequestSuite) TestAuth() {
 		JSON()
 
 	s.Nil(err)
-	s.Equal(true, j.GetPath("authenticated").MustBool())
-	s.Equal("user", j.GetPath("user").MustString())
+	s.Equal(true, GetPath(j, "authenticated").(bool))
+	s.Equal("user", GetPath(j, "user").(string))
 }
 
 func (s *RequestSuite) TestNotAuthPass() {
@@ -326,9 +330,9 @@ func (s *RequestSuite) TestField() {
 		JSON()
 
 	s.Nil(err)
-	s.Equal("v1", j.GetPath("form", "k1").MustArray()[0])
-	s.Equal("v2", j.GetPath("form", "k1").MustArray()[1])
-	s.Equal("v3", j.GetPath("form", "k2").MustString())
+	s.Equal("v1", GetIndex(GetPath(j, "form", "k1"), 0).(string))
+	s.Equal("v2", GetIndex(GetPath(j, "form", "k1"), 1).(string))
+	s.Equal("v3", GetPath(j, "form", "k2").(string))
 }
 
 func (s *RequestSuite) TestAttach() {
@@ -338,7 +342,7 @@ func (s *RequestSuite) TestAttach() {
 		JSON()
 
 	s.Nil(err)
-	s.NotEmpty(j.GetPath("files", "test.md").MustString())
+	s.NotEmpty(GetPath(j, "files", "test.md").(string))
 }
 
 func (s *RequestSuite) TestAttachAfterSend() {
@@ -373,10 +377,10 @@ func (s *RequestSuite) TestFieldsAndAttach() {
 		JSON()
 
 	s.Nil(err)
-	s.Equal("v1", j.GetPath("form", "k1").MustArray()[0])
-	s.Equal("v2", j.GetPath("form", "k1").MustArray()[1])
-	s.Equal("v3", j.GetPath("form", "k2").MustString())
-	s.NotEmpty(j.GetPath("files", "test.md").MustString())
+	s.Equal("v1", GetIndex(GetPath(j, "form", "k1"), 0).(string))
+	s.Equal("v2", GetIndex(GetPath(j, "form", "k1"), 1).(string))
+	s.Equal("v3", GetPath(j, "form", "k2").(string))
+	s.NotEmpty(GetPath(j, "files", "test.md").(string))
 }
 
 func (s *RequestSuite) TestEndWithoutURL() {
@@ -389,11 +393,8 @@ func (s *RequestSuite) TestEndWithoutMethod() {
 	u, err := url.Parse(testHost)
 
 	s.Nil(err)
-
 	s.c.url = u
-
 	_, err = s.c.End()
-
 	s.Equal(ErrLackMethod, err)
 }
 

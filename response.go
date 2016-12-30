@@ -5,14 +5,52 @@ import (
 	"compress/flate"
 	"compress/gzip"
 	"compress/zlib"
+	"encoding/json"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 
-	simplejson "github.com/bitly/go-simplejson"
 	"github.com/go-http-utils/headers"
 )
+
+// GetIndex searches value from []interface{} by index
+func GetIndex(v interface{}, index int) interface{} {
+	switch v.(type) {
+	case []interface{}:
+		res := v.([]interface{})
+		if len(res) > index {
+			return res[index]
+		}
+		return nil
+	case *[]interface{}:
+		res := v.(*[]interface{})
+		return GetIndex(*res, index)
+	default:
+		return nil
+	}
+}
+
+// GetPath searches value from map[string]interface{} by path
+func GetPath(v interface{}, branch ...string) interface{} {
+	switch v.(type) {
+	case map[string]interface{}:
+		res := v.(map[string]interface{})
+		switch len(branch) {
+		case 0:
+			return nil // should return nil when no branch
+		case 1:
+			return res[branch[0]]
+		default:
+			return GetPath(res[branch[0]], branch[1:]...)
+		}
+	case *map[string]interface{}:
+		res := v.(*map[string]interface{})
+		return GetPath(*res, branch...)
+	default:
+		return nil
+	}
+}
 
 // Response represents the response from a HTTP request.
 type Response struct {
@@ -94,18 +132,27 @@ func (r *Response) Content() ([]byte, error) {
 }
 
 // JSON returns the reponse body with JSON format.
-func (r *Response) JSON() (*simplejson.Json, error) {
+func (r *Response) JSON(v ...interface{}) (interface{}, error) {
 	if !r.OK() {
 		return nil, ErrStatusNotOk
 	}
 
 	b, err := r.Content()
-
 	if err != nil {
 		return nil, err
 	}
 
-	return simplejson.NewJson(b)
+	var res interface{}
+	if len(v) > 0 {
+		res = v[0]
+	} else {
+		res = new(map[string]interface{})
+	}
+	err = json.Unmarshal(b, res)
+	if err = json.Unmarshal(b, res); err == nil {
+		return res, nil
+	}
+	return nil, err
 }
 
 // Text returns the reponse body with text format.

@@ -1,6 +1,7 @@
 package request
 
 import (
+	"encoding/json"
 	"net/http"
 	"testing"
 
@@ -85,7 +86,7 @@ func (s *ResponseSuite) TestGzip() {
 		JSON()
 
 	s.Nil(err)
-	s.Equal(true, j.GetPath("gzipped").MustBool())
+	s.Equal(true, GetPath(j, "gzipped").(bool))
 }
 
 func (s *ResponseSuite) TestDeflate() {
@@ -94,7 +95,7 @@ func (s *ResponseSuite) TestDeflate() {
 		JSON()
 
 	s.Nil(err)
-	s.Equal(true, j.GetPath("deflated").MustBool())
+	s.Equal(true, GetPath(j, "deflated").(bool))
 }
 
 func (s *ResponseSuite) TestText() {
@@ -120,6 +121,64 @@ func (s *ResponseSuite) TestNotOkText() {
 		Text()
 
 	s.Equal(ErrStatusNotOk, err)
+}
+
+func (s *ResponseSuite) TestGetIndex() {
+	data := []interface{}{"a", "b", "c"}
+
+	var res1 interface{} = data
+	res2 := &[]interface{}{}
+	b, _ := json.Marshal(data)
+	json.Unmarshal(b, res2)
+
+	s.Equal("a", GetIndex(res1, 0).(string))
+	s.Equal("a", GetIndex(res2, 0).(string))
+	s.Nil(GetIndex(res1, 3))
+	s.Nil(GetIndex(res2, 3))
+
+	s.Nil(GetIndex([]string{}, 0))
+	s.Nil(GetIndex(map[string]string{}, 0))
+}
+
+func (s *ResponseSuite) TestGetPath() {
+	data := map[string]interface{}{
+		"key1": map[string]interface{}{
+			"key2": map[string]interface{}{
+				"key3": 1,
+				"key4": "val",
+				"key5": map[int]int{1: 1},
+				"key6": []interface{}{"a", "b"},
+			},
+		},
+	}
+
+	var res1 interface{} = data
+	res2 := &map[string]interface{}{}
+	b, _ := json.Marshal(data)
+	json.Unmarshal(b, res2)
+
+	s.Equal(1, GetPath(res1, "key1", "key2", "key3").(int))
+	s.Equal(float64(1), GetPath(res2, "key1", "key2", "key3").(float64))
+
+	s.Equal("val", GetPath(res1, "key1", "key2", "key4").(string))
+	s.Equal("val", GetPath(res2, "key1", "key2", "key4").(string))
+
+	s.Equal(map[int]int{1: 1}, GetPath(res1, "key1", "key2", "key5").(map[int]int))
+	s.Equal(float64(1), GetPath(res2, "key1", "key2", "key5", "1").(float64))
+
+	s.Equal("b", GetIndex(GetPath(res1, "key1", "key2", "key6"), 1).(string))
+	s.Equal("b", GetIndex(GetPath(res1, "key1", "key2", "key6"), 1).(string))
+
+	s.Nil(GetPath(res1, "key1", "key2", "key"))
+	s.Nil(GetPath(res2, "key1", "key2", "key"))
+	s.Nil(GetPath(res1, "key1", "key"))
+	s.Nil(GetPath(res2, "key1", "key"))
+	s.Nil(GetPath(res1, "key"))
+	s.Nil(GetPath(res2, "key"))
+	s.Nil(GetPath(res1))
+	s.Nil(GetPath(res2))
+	s.Nil(GetPath(map[string]string{}))
+	s.Nil(GetPath([]string{}))
 }
 
 func TestResponse(t *testing.T) {
