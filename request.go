@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	simplejson "github.com/bitly/go-simplejson"
 	"github.com/go-http-utils/headers"
 )
 
@@ -321,12 +320,12 @@ func (c *Client) End() (*Response, error) {
 }
 
 // JSON sends the HTTP request and returns the reponse body with JSON format.
-func (c *Client) JSON() (*simplejson.Json, error) {
+func (c *Client) JSON(v ...interface{}) (interface{}, error) {
 	if _, err := c.End(); err != nil {
 		return nil, err
 	}
 
-	return c.res.JSON()
+	return c.res.JSON(v...)
 }
 
 // Text sends the HTTP request and returns the reponse body with text format.
