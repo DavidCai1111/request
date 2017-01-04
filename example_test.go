@@ -1,7 +1,6 @@
 package request_test
 
 import (
-	"fmt"
 	"net/http"
 	"net/url"
 	"time"
@@ -38,15 +37,15 @@ func ExampleGet() {
 }
 
 func ExampleGetWithStruct() {
-	type Result struct {
+	type MyResult struct {
 		Code  int                    `json:"code"`
 		Error string                 `json:"error"`
 		Data  map[string]interface{} `json:"data"`
 	}
 
-	if json, err = request.Get("http://mysite.com").JSON(new(Result)); err == nil {
-		fmt.Println(json.(*Result).Data)
-	}
+	json, err = request.
+		Get("http://mysite.com").
+		JSON(new(MyResult))
 }
 
 func ExamplePost() {

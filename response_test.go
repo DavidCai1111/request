@@ -112,7 +112,7 @@ func (s *ResponseSuite) TestNotOkJSON() {
 		Get(testHost + "/post").
 		JSON()
 
-	s.Equal(ErrStatusNotOk, err)
+	s.NotNil(err)
 }
 
 func (s *ResponseSuite) TestNotOkText() {

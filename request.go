@@ -17,7 +17,7 @@ import (
 )
 
 // Version is this package's version number.
-const Version = "1.1.0"
+const Version = "1.2.0"
 
 // Errors used by this package.
 var (

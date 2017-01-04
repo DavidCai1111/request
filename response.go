@@ -133,10 +133,6 @@ func (r *Response) Content() ([]byte, error) {
 
 // JSON returns the reponse body with JSON format.
 func (r *Response) JSON(v ...interface{}) (interface{}, error) {
-	if !r.OK() {
-		return nil, ErrStatusNotOk
-	}
-
 	b, err := r.Content()
 	if err != nil {
 		return nil, err
@@ -148,23 +144,28 @@ func (r *Response) JSON(v ...interface{}) (interface{}, error) {
 	} else {
 		res = new(map[string]interface{})
 	}
-	err = json.Unmarshal(b, res)
-	if err = json.Unmarshal(b, res); err == nil {
-		return res, nil
+
+	if err = json.Unmarshal(b, res); err != nil {
+		return nil, err
 	}
-	return nil, err
+
+	if !r.OK() {
+		return res, ErrStatusNotOk
+	}
+
+	return res, nil
 }
 
 // Text returns the reponse body with text format.
 func (r *Response) Text() (string, error) {
-	if !r.OK() {
-		return "", ErrStatusNotOk
-	}
-
 	b, err := r.Content()
 
 	if err != nil {
 		return "", err
+	}
+
+	if !r.OK() {
+		return string(b), ErrStatusNotOk
 	}
 
 	return string(b), nil

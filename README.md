@@ -30,6 +30,18 @@ json, err = request.
   JSON()
 ```
 
+```go
+type MyResult struct {
+  Code  int                    `json:"code"`
+  Error string                 `json:"error"`
+  Data  map[string]interface{} `json:"data"`
+}
+
+json, err = request.
+  Get("http://mysite.com").
+  JSON(new(MyResult))
+```
+
 ### GET:
 
 ```go
