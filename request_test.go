@@ -53,6 +53,22 @@ func (s *RequestSuite) TestPost() {
 	s.Equal(body["k2"], GetPath(j, "json", "k2").(string))
 }
 
+func (s *RequestSuite) TestPostWithString() {
+	body := map[string]string{
+		"k1": "v1",
+		"k2": "v2",
+	}
+
+	j, err := s.c.
+		Post(testHost + "/post").
+		Send(`{"k1":"v1","k2":"v2"}`).
+		JSON()
+
+	s.Nil(err)
+	s.Equal(body["k1"], GetPath(j, "json", "k1").(string))
+	s.Equal(body["k2"], GetPath(j, "json", "k2").(string))
+}
+
 func (s *RequestSuite) TestQuickPost() {
 	body := map[string]string{
 		"k1": "v1",

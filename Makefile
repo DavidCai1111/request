@@ -6,3 +6,4 @@ cover:
 	go test -coverprofile=request.coverprofile -v -race
 	gover
 	go tool cover -html=request.coverprofile
+	rm -rf *.coverprofile

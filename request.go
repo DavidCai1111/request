@@ -17,7 +17,7 @@ import (
 )
 
 // Version is this package's version number.
-const Version = "1.2.0"
+const Version = "1.3.0"
 
 // Errors used by this package.
 var (
@@ -178,22 +178,28 @@ func (c *Client) Query(vals url.Values) *Client {
 }
 
 // Send sends the body in JSON format, body can be anything which can be
-// Marshaled.
+// Marshaled or just Marshaled JSON string.
 func (c *Client) Send(body interface{}) *Client {
 	if c.body != nil || c.mw != nil {
 		c.err = ErrBodyAlreadySet
 		return c
 	}
 
-	j, err := json.Marshal(body)
+	switch body := body.(type) {
+	case string:
+		c.body = bytes.NewBufferString(body)
+	default:
+		j, err := json.Marshal(body)
 
-	if err != nil {
-		c.err = err
-		return c
+		if err != nil {
+			c.err = err
+			return c
+		}
+
+		c.body = bytes.NewReader(j)
 	}
 
 	c.Set(headers.ContentType, "application/json")
-	c.body = bytes.NewReader(j)
 
 	return c
 }
