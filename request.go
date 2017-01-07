@@ -17,12 +17,12 @@ import (
 )
 
 // Version is this package's version number.
-const Version = "1.3.0"
+const Version = "1.3.1"
 
 // Errors used by this package.
 var (
 	ErrBasicAuthFailed = errors.New("request: basic auth failed")
-	ErrNotPOST         = errors.New("request: method is not POST when use form")
+	ErrNotPOST         = errors.New("request: method is not POST when using form")
 	ErrLackURL         = errors.New("request: request lacks URL")
 	ErrLackMethod      = errors.New("request: request lacks method")
 	ErrBodyAlreadySet  = errors.New("request: request body has already been set")
@@ -43,7 +43,7 @@ type basicAuthInfo struct {
 	password string
 }
 
-// Client is a HTTP client which provides many chainable methods.
+// Client is a HTTP client which provides usable and chainable methods.
 type Client struct {
 	cli       *http.Client
 	req       *http.Request
@@ -63,17 +63,17 @@ type Client struct {
 	err       error
 }
 
-// New returns an new instance of Client.
+// New returns a new instance of Client.
 func New() *Client {
 	return &Client{
-		cli:      &http.Client{},
-		header:   http.Header{},
-		formVals: url.Values{},
-		cookies:  []*http.Cookie{},
+		cli:      new(http.Client),
+		header:   make(http.Header),
+		formVals: make(url.Values),
+		cookies:  make([]*http.Cookie, 0),
 	}
 }
 
-// To defines the request HTTP method and URL.
+// To defines the method and URL of the request.
 func (c *Client) To(method string, URL string) *Client {
 	c.method = method
 	u, err := url.Parse(URL)
@@ -166,7 +166,7 @@ func (c *Client) Accept(t string) *Client {
 	return c.Set(headers.Accept, t)
 }
 
-// Query sets the URL query-string to the given value.
+// Query adds the the given value to request's URL query-string.
 func (c *Client) Query(vals url.Values) *Client {
 	for k, vs := range vals {
 		for _, v := range vs {
