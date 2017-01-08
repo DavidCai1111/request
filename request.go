@@ -21,12 +21,11 @@ const Version = "1.3.1"
 
 // Errors used by this package.
 var (
-	ErrBasicAuthFailed = errors.New("request: basic auth failed")
-	ErrNotPOST         = errors.New("request: method is not POST when using form")
-	ErrLackURL         = errors.New("request: request lacks URL")
-	ErrLackMethod      = errors.New("request: request lacks method")
-	ErrBodyAlreadySet  = errors.New("request: request body has already been set")
-	ErrStatusNotOk     = errors.New("request: status code is not ok (>= 400)")
+	ErrNotPOST        = errors.New("request: method is not POST when using form")
+	ErrLackURL        = errors.New("request: request lacks URL")
+	ErrLackMethod     = errors.New("request: request lacks method")
+	ErrBodyAlreadySet = errors.New("request: request body has already been set")
+	ErrStatusNotOk    = errors.New("request: status code is not ok (>= 400)")
 )
 
 type maxRedirects int
