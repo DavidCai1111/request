@@ -7,6 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"net/http/httptest"
+
 	"github.com/go-http-utils/headers"
 	"github.com/stretchr/testify/suite"
 )
@@ -412,6 +414,40 @@ func (s *RequestSuite) TestEndWithoutMethod() {
 	s.c.url = u
 	_, err = s.c.End()
 	s.Equal(ErrLackMethod, err)
+}
+
+func (s *RequestSuite) TestProxy() {
+	proxy := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		res.Write([]byte("{\"proxy\": \"test\"}"))
+	}))
+
+	defer proxy.Close()
+
+	j, err := s.c.
+		Post(testHost + "/get").
+		Proxy(proxy.URL).
+		JSON()
+
+	s.Nil(err)
+	s.Equal("test", GetPath(j, "proxy").(string))
+}
+
+func (s *RequestSuite) TestProxyInvalidURL() {
+	_, err := s.c.
+		Post(testHost + "/get").
+		Proxy("%%%%").
+		JSON()
+
+	s.NotNil(err)
+}
+
+func (s *RequestSuite) TestProxyInvalidSocks5URL() {
+	_, err := s.c.
+		Post(testHost + "/get").
+		Proxy("socks5://").
+		JSON()
+
+	s.NotNil(err)
 }
 
 func TestRequest(t *testing.T) {

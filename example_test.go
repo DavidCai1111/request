@@ -71,6 +71,13 @@ func ExampleClient_Auth() {
 		JSON()
 }
 
+func ExampleClient_Proxy() {
+	json, err = request.
+		Get("http://mysite.com/somebooks").
+		Proxy("http://myproxy.com:8080").
+		JSON()
+}
+
 func ExampleClient_Attach() {
 	json, err = request.
 		Post("http://mysite.com/readme").

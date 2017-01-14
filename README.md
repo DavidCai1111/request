@@ -77,3 +77,12 @@ json, err = request.
   Attach("test.md", "./README.md", "README.md").
   JSON()
 ```
+
+### Proxy
+
+```go
+json, err = request.
+  Get("http://mysite.com/somebooks").
+  Proxy("http://myproxy.com:8080").
+  JSON()
+```

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"mime/multipart"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -14,10 +15,11 @@ import (
 	"time"
 
 	"github.com/go-http-utils/headers"
+	"golang.org/x/net/proxy"
 )
 
 // Version is this package's version number.
-const Version = "1.3.1"
+const Version = "1.4.0"
 
 // Errors used by this package.
 var (
@@ -199,7 +201,6 @@ func (c *Client) Send(body interface{}) *Client {
 	}
 
 	c.Set(headers.ContentType, "application/json")
-
 	return c
 }
 
@@ -252,7 +253,6 @@ func (c *Client) Field(vals url.Values) *Client {
 	}
 
 	c.Type("application/x-www-form-urlencoded")
-
 	return c
 }
 
@@ -284,6 +284,43 @@ func (c *Client) Attach(fieldname, path, filename string) *Client {
 	if _, err = io.Copy(fw, file); err != nil {
 		c.err = err
 		return c
+	}
+
+	return c
+}
+
+// Proxy sets the address of the proxy which used by the request.
+func (c *Client) Proxy(addr string) *Client {
+	u, err := url.Parse(addr)
+
+	if err != nil {
+		c.err = err
+		return c
+	}
+
+	switch u.Scheme {
+	case "http", "https":
+		c.cli.Transport = &http.Transport{
+			Proxy: http.ProxyURL(u),
+			DialContext: (&net.Dialer{
+				Timeout:   30 * time.Second,
+				KeepAlive: 30 * time.Second,
+			}).DialContext,
+			TLSHandshakeTimeout: 10 * time.Second,
+		}
+	case "socks5":
+		dialer, err := proxy.FromURL(u, proxy.Direct)
+
+		if err != nil {
+			c.err = err
+			return c
+		}
+
+		c.cli.Transport = &http.Transport{
+			Proxy:               http.ProxyFromEnvironment,
+			Dial:                dialer.Dial,
+			TLSHandshakeTimeout: 10 * time.Second,
+		}
 	}
 
 	return c
