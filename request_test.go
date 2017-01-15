@@ -215,6 +215,26 @@ func (s *RequestSuite) TestAccept() {
 	s.Equal("text/plain+test", GetPath(j, "headers", headers.Accept).(string))
 }
 
+func (s *RequestSuite) TestPredefinedAccept() {
+	j, err := s.c.
+		Get(testHost + "/headers").
+		Accept("text").
+		JSON()
+
+	s.Nil(err)
+	s.Equal("text/plain", GetPath(j, "headers", headers.Accept).(string))
+}
+
+func (s *RequestSuite) TestPredefinedType() {
+	j, err := s.c.
+		Get(testHost + "/headers").
+		Type("HTML").
+		JSON()
+
+	s.Nil(err)
+	s.Equal("text/html", GetPath(j, "headers", headers.ContentType).(string))
+}
+
 func (s *RequestSuite) TestTextEmptyURL() {
 	_, err := s.c.Text()
 

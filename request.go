@@ -19,7 +19,7 @@ import (
 )
 
 // Version is this package's version number.
-const Version = "1.4.0"
+const Version = "1.4.1"
 
 // Errors used by this package.
 var (
@@ -157,13 +157,32 @@ func (c *Client) Header(h http.Header) *Client {
 	return c
 }
 
+var typesMap = map[string]string{
+	"html":       "text/html",
+	"json":       "application/json",
+	"xml":        "application/xml",
+	"text":       "text/plain",
+	"urlencoded": "application/x-www-form-urlencoded",
+	"form":       "application/x-www-form-urlencoded",
+	"form-data":  "application/x-www-form-urlencoded",
+	"multipart":  "multipart/form-data",
+}
+
 // Type sets the "Content-Type" request header to the given value.
 func (c *Client) Type(t string) *Client {
+	if typ, ok := typesMap[strings.ToLower(t)]; ok {
+		return c.Set(headers.ContentType, typ)
+	}
+
 	return c.Set(headers.ContentType, t)
 }
 
 // Accept sets the "Accept" request header to the given value.
 func (c *Client) Accept(t string) *Client {
+	if typ, ok := typesMap[strings.ToLower(t)]; ok {
+		return c.Set(headers.Accept, typ)
+	}
+
 	return c.Set(headers.Accept, t)
 }
 
