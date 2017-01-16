@@ -19,7 +19,7 @@ import (
 )
 
 // Version is this package's version number.
-const Version = "1.4.1"
+const Version = "1.5.0"
 
 // Errors used by this package.
 var (
@@ -226,6 +226,15 @@ func (c *Client) Send(body interface{}) *Client {
 // Cookie adds the cookie to the request.
 func (c *Client) Cookie(cookie *http.Cookie) *Client {
 	c.cookies = append(c.cookies, cookie)
+
+	return c
+}
+
+// CookieJar adds all cookies in the cookie jar to the request.
+func (c *Client) CookieJar(jar http.CookieJar) *Client {
+	for _, cookie := range jar.Cookies(c.url) {
+		c.Cookie(cookie)
+	}
 
 	return c
 }

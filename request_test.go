@@ -9,6 +9,8 @@ import (
 
 	"net/http/httptest"
 
+	"net/http/cookiejar"
+
 	"github.com/go-http-utils/headers"
 	"github.com/stretchr/testify/suite"
 )
@@ -311,6 +313,31 @@ func (s *RequestSuite) TestCookie() {
 	j, err := s.c.
 		Get(testHost + "/cookies").
 		Cookie(cookie).
+		JSON()
+
+	s.Nil(err)
+	s.Equal("v1", GetPath(j, "cookies", "k1").(string))
+}
+
+func (s *RequestSuite) TestCookieJar() {
+	cookie := &http.Cookie{
+		Name:  "k1",
+		Value: "v1",
+	}
+
+	cookieJar, err := cookiejar.New(nil)
+
+	s.Nil(err)
+
+	u, err := url.Parse(testHost + "/cookies")
+
+	s.Nil(err)
+
+	cookieJar.SetCookies(u, []*http.Cookie{cookie})
+
+	j, err := s.c.
+		Get(testHost + "/cookies").
+		CookieJar(cookieJar).
 		JSON()
 
 	s.Nil(err)
