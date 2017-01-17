@@ -19,7 +19,7 @@ import (
 )
 
 // Version is this package's version number.
-const Version = "1.5.0"
+const Version = "1.5.1"
 
 // Errors used by this package.
 var (
@@ -66,12 +66,17 @@ type Client struct {
 
 // New returns a new instance of Client.
 func New() *Client {
-	return &Client{
+	c := &Client{
 		cli:      new(http.Client),
 		header:   make(http.Header),
 		formVals: make(url.Values),
 		cookies:  make([]*http.Cookie, 0),
+		mwBuf:    bytes.NewBuffer(nil),
 	}
+
+	c.mw = multipart.NewWriter(c.mwBuf)
+
+	return c
 }
 
 // To defines the method and URL of the request.
@@ -200,7 +205,7 @@ func (c *Client) Query(vals url.Values) *Client {
 // Send sends the body in JSON format, body can be anything which can be
 // Marshaled or just Marshaled JSON string.
 func (c *Client) Send(body interface{}) *Client {
-	if c.body != nil || c.mw != nil {
+	if c.body != nil || c.mwBuf.Len() != 0 {
 		c.err = ErrBodyAlreadySet
 		return c
 	}
@@ -292,8 +297,6 @@ func (c *Client) Attach(fieldname, path, filename string) *Client {
 		c.err = ErrBodyAlreadySet
 		return c
 	}
-
-	c.ensureMultiWriter()
 
 	file, err := os.Open(path)
 
@@ -407,19 +410,12 @@ func (c *Client) Text() (string, error) {
 	return c.res.Text()
 }
 
-func (c *Client) ensureMultiWriter() {
-	if c.mw == nil {
-		c.mwBuf = bytes.NewBuffer(nil)
-		c.mw = multipart.NewWriter(c.mwBuf)
-	}
-}
-
 func (c *Client) assemble() error {
 	c.url.RawQuery = c.queryVals.Encode()
 
 	var buf io.Reader
 
-	if c.mwBuf != nil {
+	if c.mwBuf.Len() != 0 {
 		if c.formVals != nil {
 			for k, vs := range c.formVals {
 				for _, v := range vs {
@@ -431,8 +427,8 @@ func (c *Client) assemble() error {
 		}
 
 		buf = c.mwBuf
-		c.mw.Close()
 		c.Type(c.mw.FormDataContentType())
+		c.mw.Close()
 	} else if c.formVals != nil && c.body == nil {
 		buf = strings.NewReader(c.formVals.Encode())
 	} else {
