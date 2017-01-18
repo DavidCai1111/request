@@ -108,11 +108,12 @@ func (s *ResponseSuite) TestText() {
 }
 
 func (s *ResponseSuite) TestNotOkJSON() {
-	_, err := s.c.
-		Get(testHost + "/post").
+	res, err := s.c.
+		Get(testHost + "/status/418").
 		JSON()
 
-	s.NotNil(err)
+	s.Nil(res)
+	s.Contains(err.Error(), "teapot")
 }
 
 func (s *ResponseSuite) TestNotOkText() {
