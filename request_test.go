@@ -465,6 +465,7 @@ func (s *RequestSuite) TestEndWithoutMethod() {
 
 func (s *RequestSuite) TestProxy() {
 	proxy := httptest.NewServer(http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
+		res.Header().Set("Content-Type", "application/json; charset=utf-8")
 		res.Write([]byte("{\"proxy\": \"test\"}"))
 	}))
 

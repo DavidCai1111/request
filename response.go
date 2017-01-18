@@ -6,10 +6,12 @@ import (
 	"compress/gzip"
 	"compress/zlib"
 	"encoding/json"
+	"errors"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/go-http-utils/headers"
 )
@@ -136,6 +138,14 @@ func (r *Response) JSON(v ...interface{}) (interface{}, error) {
 	b, err := r.Content()
 	if err != nil {
 		return nil, err
+	}
+
+	if !strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
+		err := r.Status
+		if len(b) > 0 {
+			err = string(b)
+		}
+		return nil, errors.New(err)
 	}
 
 	var res interface{}
