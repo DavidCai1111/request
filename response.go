@@ -9,6 +9,7 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
+	"mime"
 	"net/http"
 	"net/url"
 	"strings"
@@ -140,7 +141,7 @@ func (r *Response) JSON(v ...interface{}) (interface{}, error) {
 		return nil, err
 	}
 
-	if !strings.HasPrefix(r.Header.Get("Content-Type"), "application/json") {
+	if !strings.HasPrefix(r.Header.Get(headers.ContentType), mime.TypeByExtension(".json")) {
 		err := r.Status
 		if len(b) > 0 {
 			err = string(b)
