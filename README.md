@@ -8,7 +8,7 @@ A concise HTTP request client for Go. It provides elegant and chainalbe API to m
 
 ## Installation
 
-```go
+```
 go get -u github.com/DavidCai1993/request
 ```
 
