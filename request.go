@@ -73,7 +73,6 @@ func New() *Client {
 		cookies:  make([]*http.Cookie, 0),
 		mwBuf:    bytes.NewBuffer(nil),
 	}
-
 	c.mw = multipart.NewWriter(c.mwBuf)
 
 	return c
@@ -95,6 +94,26 @@ func (c *Client) To(method string, URL string) *Client {
 	return c
 }
 
+// Get equals To("GET", URL) .
+func (c *Client) Get(URL string) *Client {
+	return c.To(http.MethodGet, URL)
+}
+
+// Post equals To("POST", URL) .
+func (c *Client) Post(URL string) *Client {
+	return c.To(http.MethodPost, URL)
+}
+
+// Put equals To("PUT", URL) .
+func (c *Client) Put(URL string) *Client {
+	return c.To(http.MethodPut, URL)
+}
+
+// Delete equals To("DELETE", URL) .
+func (c *Client) Delete(URL string) *Client {
+	return c.To(http.MethodDelete, URL)
+}
+
 // Get equals New().Get(URL) to let you start a GET request conveniently.
 func Get(URL string) *Client {
 	return New().Get(URL)
@@ -114,26 +133,6 @@ func Put(URL string) *Client {
 // conveniently.
 func Delete(URL string) *Client {
 	return New().Delete(URL)
-}
-
-// Get equals To("GET", URL) .
-func (c *Client) Get(URL string) *Client {
-	return c.To(http.MethodGet, URL)
-}
-
-// Post equals To("POST", URL) .
-func (c *Client) Post(URL string) *Client {
-	return c.To(http.MethodPost, URL)
-}
-
-// Put equals To("PUT", URL) .
-func (c *Client) Put(URL string) *Client {
-	return c.To(http.MethodPut, URL)
-}
-
-// Delete equals To("DELETE", URL) .
-func (c *Client) Delete(URL string) *Client {
-	return c.To(http.MethodDelete, URL)
 }
 
 // Set sets the request header entries associated with key to the single
@@ -174,8 +173,21 @@ var typesMap = map[string]string{
 }
 
 // Type sets the "Content-Type" request header to the given value.
+// Some shorthands are supported:
+//
+// "html":       "text/html"
+// "json":       "application/json"
+// "xml":        "application/xml"
+// "text":       "text/plain"
+// "urlencoded": "application/x-www-form-urlencoded"
+// "form":       "application/x-www-form-urlencoded"
+// "form-data":  "application/x-www-form-urlencoded"
+// "multipart":  "multipart/form-data"
+//
+// So you can just call .Type("html") to set the "Content-Type"
+// header to "text/html".
 func (c *Client) Type(t string) *Client {
-	if typ, ok := typesMap[strings.ToLower(t)]; ok {
+	if typ, ok := typesMap[strings.TrimSpace(strings.ToLower(t))]; ok {
 		return c.Set(headers.ContentType, typ)
 	}
 
@@ -183,8 +195,21 @@ func (c *Client) Type(t string) *Client {
 }
 
 // Accept sets the "Accept" request header to the given value.
+// Some shorthands are supported:
+//
+// "html":       "text/html"
+// "json":       "application/json"
+// "xml":        "application/xml"
+// "text":       "text/plain"
+// "urlencoded": "application/x-www-form-urlencoded"
+// "form":       "application/x-www-form-urlencoded"
+// "form-data":  "application/x-www-form-urlencoded"
+// "multipart":  "multipart/form-data"
+//
+// So you can just call .Accept("json") to set the "Accept"
+// header to "application/json".
 func (c *Client) Accept(t string) *Client {
-	if typ, ok := typesMap[strings.ToLower(t)]; ok {
+	if typ, ok := typesMap[strings.TrimSpace(strings.ToLower(t))]; ok {
 		return c.Set(headers.Accept, typ)
 	}
 
