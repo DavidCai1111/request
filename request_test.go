@@ -3,13 +3,11 @@ package request
 import (
 	"fmt"
 	"net/http"
+	"net/http/cookiejar"
+	"net/http/httptest"
 	"net/url"
 	"testing"
 	"time"
-
-	"net/http/httptest"
-
-	"net/http/cookiejar"
 
 	"github.com/go-http-utils/headers"
 	"github.com/stretchr/testify/suite"
@@ -496,6 +494,15 @@ func (s *RequestSuite) TestProxyInvalidSocks5URL() {
 		JSON()
 
 	s.NotNil(err)
+}
+
+func (s *RequestSuite) TestReq() {
+	req, err := s.c.Post(testHost + "/post").
+		Accept("json").
+		Req()
+
+	s.Nil(err)
+	s.Equal(req.Header.Get(headers.Accept), "application/json")
 }
 
 func TestRequest(t *testing.T) {

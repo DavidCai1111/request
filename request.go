@@ -19,7 +19,7 @@ import (
 )
 
 // Version is this package's version number.
-const Version = "1.5.3"
+const Version = "1.6.0"
 
 // Errors used by this package.
 var (
@@ -415,6 +415,29 @@ func (c *Client) End() (*Response, error) {
 	c.res = &Response{Response: response}
 
 	return c.res, nil
+}
+
+// Req returns the representing http.Request instance of this request.
+// It is often used in wirting tests.
+func (c *Client) Req() (*http.Request, error) {
+	if c.url == nil {
+		return nil, ErrLackURL
+	}
+
+	if c.method == "" {
+		return nil, ErrLackMethod
+	}
+
+	if c.err != nil {
+		return nil, c.err
+	}
+
+	if err := c.assemble(); err != nil {
+		c.err = err
+		return nil, err
+	}
+
+	return c.req, nil
 }
 
 // JSON sends the HTTP request and returns the reponse body with JSON format.

@@ -86,3 +86,12 @@ json, err = request.
   Proxy("http://myproxy.com:8080").
   JSON()
 ```
+
+### Convert to http.Request instance
+
+```go
+req, err = request.
+  Post("http://mysite.com/form").
+  Auth("name", "passwd").
+  Req()
+```
