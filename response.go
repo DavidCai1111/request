@@ -101,35 +101,28 @@ func (r *Response) Content() ([]byte, error) {
 			return nil, err
 		}
 	case "deflate":
-		reader = flate.NewReader(bytes.NewBuffer(r.raw.Bytes()))
+		// deflate should be zlib
+		// http://www.gzip.org/zlib/zlib_faq.html#faq38
+		if reader, err = zlib.NewReader(bytes.NewBuffer(r.raw.Bytes())); err != nil {
+			// try RFC 1951 deflate
+			// http: //www.open-open.com/lib/view/open1460866410410.html
+			reader = flate.NewReader(bytes.NewBuffer(r.raw.Bytes()))
+		}
 	}
 
 	if reader == nil {
 		r.content = rawBytes
-
 		return rawBytes, nil
 	}
 
 	defer reader.Close()
 	b, err := ioutil.ReadAll(reader)
 
-	// If gzip or deflate decoding failed, try zlib decoding instead.
-	// The body may be wrapped in the zlib data format.
 	if err != nil {
-		var zlibReader io.ReadCloser
-
-		if zlibReader, err = zlib.NewReader(bytes.NewBuffer(r.raw.Bytes())); err != nil {
-			return nil, err
-		}
-		defer zlibReader.Close()
-
-		if b, err = ioutil.ReadAll(zlibReader); err != nil {
-			return nil, err
-		}
+		return nil, err
 	}
 
 	r.content = b
-
 	return b, nil
 }
 
