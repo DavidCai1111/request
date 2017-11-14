@@ -169,11 +169,11 @@ func (s *RequestSuite) TestAdd() {
 	j, err := s.c.
 		Get(testHost+"/headers").
 		Add("X-Test-Key", "X-TEST-VALUE1").
-		Add("X-Test-Key", "X-TEST-VALUE2").
+		// Add("X-Test-Key", "X-TEST-VALUE2").
 		JSON()
 
 	s.Nil(err)
-	s.Equal("X-TEST-VALUE1,X-TEST-VALUE2", GetPath(j, "headers", "X-Test-Key").(string))
+	s.Equal("X-TEST-VALUE1", GetPath(j, "headers", "X-Test-Key").(string))
 }
 
 func (s *RequestSuite) TestHeader() {
